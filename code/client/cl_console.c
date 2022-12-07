@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 int g_console_field_width = 78;
 
 
-#define	NUM_CON_TIMES 4
+#define	NUM_CON_TIMES 8
 
 #define		CON_TEXTSIZE	32768
 typedef struct {
@@ -58,6 +58,7 @@ console_t	con;
 cvar_t		*con_conspeed;
 cvar_t		*con_autoclear;
 cvar_t		*con_notifytime;
+cvar_t		*con_numlines;
 
 #define	DEFAULT_CONSOLE_WIDTH	78
 
@@ -357,6 +358,7 @@ void Con_Init (void) {
 	int		i;
 
 	con_notifytime = Cvar_Get ("con_notifytime", "3", 0);
+	con_numlines = Cvar_Get ("con_numlines", "3", 0);
 	con_conspeed = Cvar_Get ("scr_conspeed", "3", 0);
 	con_autoclear = Cvar_Get("con_autoclear", "1", CVAR_ARCHIVE);
 
@@ -573,8 +575,12 @@ void Con_DrawNotify (void)
 	currentColor = 7;
 	re.SetColor( g_color_table[currentColor] );
 
+	if (con_numlines->integer > NUM_CON_TIMES) {
+		con_numlines->integer = NUM_CON_TIMES;
+	}
+
 	v = 0;
-	for (i= con.current-NUM_CON_TIMES+1 ; i<=con.current ; i++)
+	for (i= con.current-con_numlines->integer ; i<=con.current ; i++)
 	{
 		if (i < 0)
 			continue;
