@@ -1023,7 +1023,7 @@ Return time in millseconds until processing of the next server frame.
 */
 int SV_FrameMsec()
 {
-	if(sv_fps)
+/*	if(sv_fps)
 	{
 		int frameMsec;
 		
@@ -1036,6 +1036,9 @@ int SV_FrameMsec()
 	}
 	else
 		return 1;
+		*/
+	// don't wait. Run as fast as possible on dedicated servers.
+	return 1;
 }
 
 /*

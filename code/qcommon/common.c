@@ -3013,14 +3013,9 @@ int Com_ModifyMsec( int msec ) {
 	}
 
 	if ( com_dedicated->integer ) {
-		// dedicated servers don't want to clamp for a much longer
-		// period, because it would mess up all the client's views
-		// of time.
-		if (com_sv_running->integer && msec > 500)
-			Com_Printf( "Hitch warning: %i msec frame time\n", msec );
-
-		clampTime = 5000;
-	} else 
+		// don't clamp the simulation on dedicated servers
+		return msec;
+	}
 	if ( !com_sv_running->integer ) {
 		// clients of remote servers do not want to clamp time, because
 		// it would skew their view of the server's time temporarily
