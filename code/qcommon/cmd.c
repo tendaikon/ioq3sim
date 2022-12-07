@@ -261,6 +261,32 @@ void Cbuf_Execute (void)
 
 /*
 ===============
+Cmd_Preprocess
+
+substitute parameters inside the script
+===============
+*/
+char cmd_preproc[MAX_CMD_BUFFER];
+char *Cmd_Preprocess(const char *in) {
+	const char *arg;
+	int i;
+	for (i=0; *in && i+1<sizeof(cmd_preproc); ) {
+		if (*in == '$' && *(in+1) >= '0' && *(in+1) <= '9') {
+			arg = Cmd_Argv(*(in+1)-'0' +1);		//arg0 is 'exec', arg1 is the script name
+			while (*arg && i+1<sizeof(cmd_preproc)) {
+				cmd_preproc[i++] = *arg++;
+			}
+			in += 2;
+			continue;
+		}
+		cmd_preproc[i++] = *in++;
+	}
+	cmd_preproc[i] = 0;
+	return cmd_preproc;
+}
+
+/*
+===============
 Cmd_Exec_f
 ===============
 */
@@ -274,7 +300,7 @@ void Cmd_Exec_f( void ) {
 
 	quiet = !Q_stricmp(Cmd_Argv(0), "execq");
 
-	if (Cmd_Argc () != 2) {
+	if (Cmd_Argc () < 2) {
 		Com_Printf ("exec%s <filename> : execute a script file%s\n",
 		            quiet ? "q" : "", quiet ? " without notification" : "");
 		return;
@@ -290,7 +316,7 @@ void Cmd_Exec_f( void ) {
 	if (!quiet)
 		Com_Printf ("execing %s\n", filename);
 	
-	Cbuf_InsertText (f.c);
+	Cbuf_InsertText (Cmd_Preprocess(f.c));
 
 	FS_FreeFile (f.v);
 }
