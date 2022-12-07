@@ -1077,15 +1077,7 @@ void SV_Frame( int msec ) {
 	if ( sv_fps->integer < 1 ) {
 		Cvar_Set( "sv_fps", "10" );
 	}
-
-	frameMsec = 1000 / sv_fps->integer * com_timescale->value;
-	// don't let it scale below 1ms
-	if(frameMsec < 1)
-	{
-		Cvar_Set("timescale", va("%f", sv_fps->integer / 1000.0f));
-		frameMsec = 1;
-	}
-
+	frameMsec = 1000 / sv_fps->integer;
 	sv.timeResidual += msec;
 
 	if (!com_dedicated->integer) SV_BotFrame (sv.time + sv.timeResidual);
@@ -1198,7 +1190,7 @@ int SV_RateMsec(client_t *client)
 	else
 		messageSize += UDPIP_HEADER_SIZE;
 		
-	rateMsec = messageSize * 1000 / ((int) (rate * com_timescale->value));
+	rateMsec = messageSize * 1000 / rate;
 	rate = Sys_Milliseconds() - client->netchan.lastSentTime;
 	
 	if(rate > rateMsec)
