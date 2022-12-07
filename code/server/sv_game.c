@@ -842,6 +842,21 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 	case TRAP_CEIL:
 		return FloatAsInt( ceil( VMF(1) ) );
 
+	// ioq3sim specifics
+	case G_RESIDUAL_ALLOC:
+		return (intptr_t) R_Malloc(args[1]);
+
+	case G_RESIDUAL_FREE:
+		Z_Free( VMA(1) );
+		return 0;
+
+	case G_RESIDUAL_GETINDEX:
+		return (intptr_t)R_GetIndex(args[1]);
+
+	case G_RESIDUAL_CLEAR:
+		R_Clear();
+		return 0;
+
 
 	default:
 		Com_Error( ERR_DROP, "Bad game system trap: %ld", (long int) args[0] );

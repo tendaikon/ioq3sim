@@ -40,8 +40,11 @@ int demo_protocols[] =
 #define MIN_COMHUNKMEGS		56
 #define DEF_COMHUNKMEGS 	128
 #define DEF_COMZONEMEGS		24
+#define MIN_COMRESMEGS		0
+#define DEF_COMRESMEGS		256
 #define DEF_COMHUNKMEGS_S	XSTRING(DEF_COMHUNKMEGS)
 #define DEF_COMZONEMEGS_S	XSTRING(DEF_COMZONEMEGS)
+#define DEF_COMRESMEGS_S	XSTRING(DEF_COMRESMEGS)
 
 int		com_argc;
 char	*com_argv[MAX_NUM_ARGVS+1];
@@ -798,6 +801,9 @@ static memzone_t	*mainzone;
 // we also have a small zone for small allocations that would only
 // fragment the main zone (think of cvar and cmd strings)
 static memzone_t	*smallzone;
+// residual memory persists for as long as the engine is running
+// can be cleared manually
+static memzone_t	*residualzone;
 
 static void Z_CheckHeap( void );
 
@@ -876,6 +882,9 @@ void Z_Free( void *ptr ) {
 
 	if (block->tag == TAG_SMALL) {
 		zone = smallzone;
+	}
+	else if (block->tag == TAG_RESIDUAL) {
+		zone = residualzone;
 	}
 	else {
 		zone = mainzone;
@@ -960,6 +969,9 @@ void *Z_TagMalloc( int size, int tag ) {
 
 	if ( tag == TAG_SMALL ) {
 		zone = smallzone;
+	}
+	else if ( tag == TAG_RESIDUAL ) {
+		zone = residualzone;
 	}
 	else {
 		zone = mainzone;
@@ -1274,6 +1286,7 @@ static	int		s_hunkTotal;
 
 static	int		s_zoneTotal;
 static	int		s_smallZoneTotal;
+static	int		s_resZoneTotal;
 
 
 /*
@@ -1285,6 +1298,7 @@ void Com_Meminfo_f( void ) {
 	memblock_t	*block;
 	int			zoneBytes, zoneBlocks;
 	int			smallZoneBytes;
+	int			residualzoneBytes, residualzoneBlocks;
 	int			botlibBytes, rendererBytes;
 	int			unused;
 
@@ -1332,8 +1346,22 @@ void Com_Meminfo_f( void ) {
 		}
 	}
 
+	residualzoneBytes = 0;
+	residualzoneBlocks = 0;
+	for (block = residualzone->blocklist.next ; ; block = block->next) {
+		if ( block->tag ) {
+			residualzoneBytes += block->size;
+			residualzoneBlocks++;
+		}
+
+		if (block->next == &residualzone->blocklist) {
+			break;			// all blocks have been hit
+		}
+	}
+
 	Com_Printf( "%8i bytes total hunk\n", s_hunkTotal );
 	Com_Printf( "%8i bytes total zone\n", s_zoneTotal );
+	Com_Printf( "%8i bytes residual zone\n", s_resZoneTotal );
 	Com_Printf( "\n" );
 	Com_Printf( "%8i low mark\n", hunk_low.mark );
 	Com_Printf( "%8i low permanent\n", hunk_low.permanent );
@@ -1364,6 +1392,8 @@ void Com_Meminfo_f( void ) {
 	Com_Printf( "        %8i bytes in dynamic renderer\n", rendererBytes );
 	Com_Printf( "        %8i bytes in dynamic other\n", zoneBytes - ( botlibBytes + rendererBytes ) );
 	Com_Printf( "        %8i bytes in small Zone memory\n", smallZoneBytes );
+	Com_Printf( "\n" );
+	Com_Printf( "%8i bytes in %i residual blocks\n", residualzoneBytes, residualzoneBlocks	);
 }
 
 /*
@@ -1453,6 +1483,57 @@ void Com_InitZoneMemory( void ) {
 	}
 	Z_ClearZone( mainzone, s_zoneTotal );
 
+}
+
+void Com_InitResidualMemory( void ) {
+	cvar_t *cv;
+	cv = Cvar_Get("com_residualmegs", DEF_COMRESMEGS_S, CVAR_LATCH | CVAR_ARCHIVE);
+
+	if (cv->integer < MIN_COMRESMEGS) {
+		s_resZoneTotal = 1024 * 1024 * MIN_COMRESMEGS;
+	} else {
+		s_resZoneTotal = cv->integer * 1024 * 1024;
+	}
+	if (s_resZoneTotal <= 0) {
+		residualzone = NULL;
+		return;
+	}
+
+	residualzone = calloc( s_resZoneTotal, 1 );
+	if ( !residualzone ) {
+		Com_Error( ERR_FATAL, "Residual data failed to allocate %i megs", s_resZoneTotal / (1024*1024) );
+	}
+	Z_ClearZone( residualzone, s_resZoneTotal );
+}
+
+#ifdef ZONE_DEBUG
+void *R_MallocDebug( int size, char *label, char *file, int line ) {
+	return Z_TagMallocDebug( size, TAG_RESIDUAL, label, file, line );
+}
+#else
+void *R_Malloc( int size ) {
+	return Z_TagMalloc( size, TAG_RESIDUAL );
+}
+#endif
+
+void *R_GetIndex(int i) {
+	memblock_t *block;
+
+	for (block=residualzone->blocklist.next; block != &residualzone->blocklist; block=block->next) {
+		if (block->tag != TAG_RESIDUAL) {
+			continue;
+		}
+		if (!i--) {
+			return (void*)block+sizeof(memblock_t);
+		}
+	}
+	// index doesn't exist. Leave error management to the caller.
+	return NULL;
+
+}
+
+void R_Clear( void ) {
+	Z_ClearZone( residualzone, s_resZoneTotal );
 }
 
 /*
@@ -2799,6 +2880,8 @@ void Com_Init( char *commandLine ) {
 	// Pick a random port value
 	Com_RandomBytes( (byte*)&qport, sizeof(int) );
 	Netchan_Init( qport & 0xffff );
+
+	Com_InitResidualMemory();
 
 	VM_Init();
 	SV_Init();

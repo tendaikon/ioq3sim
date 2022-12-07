@@ -907,7 +907,8 @@ typedef enum {
 	TAG_BOTLIB,
 	TAG_RENDERER,
 	TAG_SMALL,
-	TAG_STATIC
+	TAG_STATIC,
+	TAG_RESIDUAL
 } memtag_t;
 
 /*
@@ -937,18 +938,23 @@ temp file loading
 #define Z_TagMalloc(size, tag)			Z_TagMallocDebug(size, tag, #size, __FILE__, __LINE__)
 #define Z_Malloc(size)					Z_MallocDebug(size, #size, __FILE__, __LINE__)
 #define S_Malloc(size)					S_MallocDebug(size, #size, __FILE__, __LINE__)
+#define R_Malloc(size)					R_MallocDebug(size, #size, __FILE__, __LINE__)
 void *Z_TagMallocDebug( int size, int tag, char *label, char *file, int line );	// NOT 0 filled memory
 void *Z_MallocDebug( int size, char *label, char *file, int line );			// returns 0 filled memory
 void *S_MallocDebug( int size, char *label, char *file, int line );			// returns 0 filled memory
+void *R_MallocDebug( int size, char *label, char *file, int line );			// NOT 0 filled. This is the caller's responsibility.
 #else
 void *Z_TagMalloc( int size, int tag );	// NOT 0 filled memory
 void *Z_Malloc( int size );			// returns 0 filled memory
 void *S_Malloc( int size );			// NOT 0 filled memory only for small allocations
+void *R_Malloc( int size );			// NOT 0 filled
 #endif
 void Z_Free( void *ptr );
 void Z_FreeTags( int tag );
 int Z_AvailableMemory( void );
 void Z_LogHeap( void );
+void *R_GetIndex(int i);
+void R_Clear( void );
 
 void Hunk_Clear( void );
 void Hunk_ClearToMark( void );
