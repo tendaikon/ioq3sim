@@ -951,3 +951,8 @@ int		trap_GeneticParentsAndChildSelection(int numranks, float *ranks, int *paren
 
 void	trap_SnapVector( float *v );
 
+//ioq3sim
+void *trap_Residual_Alloc(int size);
+void trap_Residual_Free(void *p);
+void *trap_Residual_GetIndex(int i);
+void trap_Residual_Clear(void);
