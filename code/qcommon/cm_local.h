@@ -122,6 +122,7 @@ typedef struct {
 	int			*areaPortals;	// [ numAreas*numAreas ] reference counts
 
 	int			numSurfaces;
+	int			numPatchSurfaces;
 	cPatch_t	**surfaces;			// non-patches will be NULL
 
 	int			floodvalid;

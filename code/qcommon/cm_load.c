@@ -511,6 +511,7 @@ void CMod_LoadPatches( lump_t *surfs, lump_t *verts ) {
 		// FIXME: check for non-colliding patches
 
 		cm.surfaces[ i ] = patch = Hunk_Alloc( sizeof( *patch ), h_high );
+		cm.numPatchSurfaces++;
 
 		// load the full drawverts onto the stack
 		width = LittleLong( in->patchWidth );
