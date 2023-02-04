@@ -259,7 +259,6 @@ static	cvar_t		*fs_microsoftstorepath;
 static	cvar_t		*fs_basepath;
 static	cvar_t		*fs_basegame;
 static	cvar_t		*fs_gamedirvar;
-static	cvar_t		*fs_subgamedirvar;
 static	searchpath_t	*fs_searchpaths;
 static	int			fs_readCount;			// total bytes read
 static	int			fs_loadCount;			// total files read
@@ -3332,7 +3331,6 @@ static void FS_Startup( const char *gameName )
 	}
 	fs_homepath = Cvar_Get ("fs_homepath", homePath, CVAR_INIT|CVAR_PROTECTED );
 	fs_gamedirvar = Cvar_Get ("fs_game", "", CVAR_INIT|CVAR_SYSTEMINFO );
-	fs_subgamedirvar = Cvar_Get ("fs_subgamedir", "", CVAR_INIT);
 
 	if (!gameName[0]) {
 		Cvar_ForceReset( "com_basegame" );
@@ -3353,9 +3351,6 @@ static void FS_Startup( const char *gameName )
 	}
 	if (FS_InvalidGameDir(fs_gamedirvar->string)) {
 		Com_Error( ERR_DROP, "Invalid fs_game '%s'", fs_gamedirvar->string );
-	}
-	if (FS_CheckDirTraversal(fs_subgamedirvar->string)) {
-		Com_Error( ERR_DROP, "Invalid fs_subgamedir '%s'", fs_subgamedirvar->string );
 	}
 
 	// add search path elements in reverse priority order
@@ -3412,10 +3407,6 @@ static void FS_Startup( const char *gameName )
 		}
 		if (fs_steampath->string[0]) {
 			FS_AddGameDirectory(fs_steampath->string, fs_gamedirvar->string);
-		}
-		// subgamedir - further subdivision of gamedir
-		if (fs_subgamedirvar->string[0]) {
-			FS_AddGameDirectory(fs_basepath->string, va("%s/%s", fs_gamedirvar->string, fs_subgamedirvar->string));
 		}
 		if (fs_basepath->string[0]) {
 			FS_AddGameDirectory(fs_basepath->string, fs_gamedirvar->string);
