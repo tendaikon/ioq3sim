@@ -257,9 +257,11 @@ static	cvar_t		*fs_gogpath;
 static	cvar_t		*fs_microsoftstorepath;
 
 static	cvar_t		*fs_basepath;
+static	cvar_t		*fs_datapath;
 static	cvar_t		*fs_basegame;
 static	cvar_t		*fs_gamedirvar;
 static	searchpath_t	*fs_searchpaths;
+static	searchpath_t	*fs_datasearchpaths;
 static	int			fs_readCount;			// total bytes read
 static	int			fs_loadCount;			// total files read
 static	int			fs_loadStack;			// total files in memory
@@ -909,7 +911,12 @@ fileHandle_t FS_FOpenFileWrite( const char *filename ) {
 	f = FS_HandleForFile();
 	fsh[f].zipFile = qfalse;
 
-	ospath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, filename );
+	if (*filename == '@') {
+		filename++;
+		ospath = FS_BuildOSPath( fs_datapath->string, fs_gamedir, filename );
+	} else {
+		ospath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, filename );
+	}
 
 	if ( fs_debug->integer ) {
 		Com_Printf( "FS_FOpenFileWrite: %s\n", ospath );
@@ -957,7 +964,13 @@ fileHandle_t FS_FOpenFileAppend( const char *filename ) {
 	// don't let sound stutter
 	S_ClearSoundBuffer();
 
-	ospath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, filename );
+	if (*filename == '@') {
+		filename++;
+		ospath = FS_BuildOSPath( fs_datapath->string, fs_gamedir, filename );
+	} else {
+		ospath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, filename );
+	}
+
 
 	if ( fs_debug->integer ) {
 		Com_Printf( "FS_FOpenFileAppend: %s\n", ospath );
@@ -1387,8 +1400,15 @@ long FS_FOpenFileRead(const char *filename, fileHandle_t *file, qboolean uniqueF
 	if(!fs_searchpaths)
 		Com_Error(ERR_FATAL, "Filesystem call made without initialization");
 
+	if (*filename == '@') {
+		filename++;
+		search = fs_datasearchpaths;
+	} else {
+		search = fs_searchpaths;
+	}
+
 	isLocalConfig = !strcmp(filename, "autoexec.cfg") || !strcmp(filename, Q3CONFIG_CFG);
-	for(search = fs_searchpaths; search; search = search->next)
+	for(; search; search = search->next)
 	{
 		// autoexec.cfg and q3config.cfg can only be loaded outside of pk3 files.
 		if (isLocalConfig && search->pack)
@@ -2248,6 +2268,12 @@ char **FS_ListFilteredFiles( const char *path, const char *extension, char *filt
 	if ( !extension ) {
 		extension = "";
 	}
+	if (*path == '@') {
+		search = fs_datasearchpaths;
+		path++;
+	} else {
+		search = fs_searchpaths;
+	}
 
 	pathLength = strlen( path );
 	if ( path[pathLength-1] == '\\' || path[pathLength-1] == '/' ) {
@@ -2260,7 +2286,7 @@ char **FS_ListFilteredFiles( const char *path, const char *extension, char *filt
 	//
 	// search through the path, one element at a time, adding to list
 	//
-	for (search = fs_searchpaths ; search ; search = search->next) {
+	for ( ; search ; search = search->next) {
 		// is the element a pak file?
 		if (search->pack) {
 
@@ -2900,7 +2926,7 @@ Sets fs_gamedir, adds the directory to the head of the path,
 then loads the zip headers
 ================
 */
-void FS_AddGameDirectory( const char *path, const char *dir ) {
+void FS_AddGameDirectory( searchpath_t **searchpaths, const char *path, const char *dir ) {
 	searchpath_t	*sp;
 	searchpath_t	*search;
 	pack_t			*pak;
@@ -2918,7 +2944,7 @@ void FS_AddGameDirectory( const char *path, const char *dir ) {
 	int				len;
 
 	// Unique
-	for ( sp = fs_searchpaths ; sp ; sp = sp->next ) {
+	for ( sp = *searchpaths ; sp ; sp = sp->next ) {
 		if ( sp->dir && !Q_stricmp(sp->dir->path, path) && !Q_stricmp(sp->dir->gamedir, dir)) {
 			return;			// we've already got this one
 		}
@@ -2986,8 +3012,8 @@ void FS_AddGameDirectory( const char *path, const char *dir ) {
 
 			search = Z_Malloc(sizeof(searchpath_t));
 			search->pack = pak;
-			search->next = fs_searchpaths;
-			fs_searchpaths = search;
+			search->next = *searchpaths;
+			*searchpaths = search;
 
 			pakfilesi++;
 		}
@@ -3011,8 +3037,8 @@ void FS_AddGameDirectory( const char *path, const char *dir ) {
 			Q_strncpyz(search->dir->fullpath, pakfile, sizeof(search->dir->fullpath));	// c:\quake3\baseq3\mypak.pk3dir
 			Q_strncpyz(search->dir->gamedir, pakdirs[pakdirsi], sizeof(search->dir->gamedir)); // mypak.pk3dir
 
-			search->next = fs_searchpaths;
-			fs_searchpaths = search;
+			search->next = *searchpaths;
+			*searchpaths = search;
 
 			pakdirsi++;
 		}
@@ -3032,8 +3058,8 @@ void FS_AddGameDirectory( const char *path, const char *dir ) {
 	Q_strncpyz(search->dir->fullpath, curpath, sizeof(search->dir->fullpath));
 	Q_strncpyz(search->dir->gamedir, dir, sizeof(search->dir->gamedir));
 
-	search->next = fs_searchpaths;
-	fs_searchpaths = search;
+	search->next = *searchpaths;
+	*searchpaths = search;
 }
 
 /*
@@ -3226,6 +3252,7 @@ Frees all resources.
 ================
 */
 void FS_Shutdown( qboolean closemfp ) {
+	searchpath_t *sps[] = { fs_searchpaths, fs_datasearchpaths };
 	searchpath_t	*p, *next;
 	int	i;
 
@@ -3236,20 +3263,24 @@ void FS_Shutdown( qboolean closemfp ) {
 	}
 
 	// free everything
-	for(p = fs_searchpaths; p; p = next)
+	for (i=0; i<sizeof(sps)/sizeof(sps[0]); i++)
 	{
-		next = p->next;
+		for(p = sps[i]; p; p = next)
+		{
+			next = p->next;
 
-		if(p->pack)
-			FS_FreePak(p->pack);
-		if (p->dir)
-			Z_Free(p->dir);
+			if(p->pack)
+				FS_FreePak(p->pack);
+			if (p->dir)
+				Z_Free(p->dir);
 
-		Z_Free(p);
+			Z_Free(p);
+		}
 	}
 
 	// any FS_ calls will now be an error until reinitialized
 	fs_searchpaths = NULL;
+	fs_datasearchpaths = NULL;
 
 	Cmd_RemoveCommand( "path" );
 	Cmd_RemoveCommand( "dir" );
@@ -3330,6 +3361,7 @@ static void FS_Startup( const char *gameName )
 		homePath = fs_basepath->string;
 	}
 	fs_homepath = Cvar_Get ("fs_homepath", homePath, CVAR_INIT|CVAR_PROTECTED );
+	fs_datapath = Cvar_Get ("fs_datapath", fs_homepath->string, CVAR_INIT|CVAR_PROTECTED );	// default to the current write path (homepath)
 	fs_gamedirvar = Cvar_Get ("fs_game", "", CVAR_INIT|CVAR_SYSTEMINFO );
 
 	if (!gameName[0]) {
@@ -3356,18 +3388,18 @@ static void FS_Startup( const char *gameName )
 	// add search path elements in reverse priority order
 	fs_microsoftstorepath = Cvar_Get("fs_microsoftstorepath", Sys_MicrosoftStorePath(), CVAR_INIT | CVAR_PROTECTED);
 	if (fs_microsoftstorepath->string[0]) {
-		FS_AddGameDirectory(fs_microsoftstorepath->string, gameName);
+		FS_AddGameDirectory(&fs_searchpaths, fs_microsoftstorepath->string, gameName);
 	}
 	fs_gogpath = Cvar_Get ("fs_gogpath", Sys_GogPath(), CVAR_INIT|CVAR_PROTECTED );
 	if (fs_gogpath->string[0]) {
-		FS_AddGameDirectory( fs_gogpath->string, gameName );
+		FS_AddGameDirectory( &fs_searchpaths, fs_gogpath->string, gameName );
 	}
 	fs_steampath = Cvar_Get ("fs_steampath", Sys_SteamPath(), CVAR_INIT|CVAR_PROTECTED );
 	if (fs_steampath->string[0]) {
-		FS_AddGameDirectory( fs_steampath->string, gameName );
+		FS_AddGameDirectory( &fs_searchpaths, fs_steampath->string, gameName );
 	}
 	if (fs_basepath->string[0]) {
-		FS_AddGameDirectory( fs_basepath->string, gameName );
+		FS_AddGameDirectory( &fs_searchpaths, fs_basepath->string, gameName );
 	}
 	// fs_homepath is somewhat particular to *nix systems, only add if relevant
 
@@ -3375,45 +3407,50 @@ static void FS_Startup( const char *gameName )
 	fs_apppath = Cvar_Get ("fs_apppath", Sys_DefaultAppPath(), CVAR_INIT|CVAR_PROTECTED );
 	// Make MacOSX also include the base path included with the .app bundle
 	if (fs_apppath->string[0])
-		FS_AddGameDirectory(fs_apppath->string, gameName);
+		FS_AddGameDirectory(&fs_searchpaths, fs_apppath->string, gameName);
 #endif
 
 	// NOTE: same filtering below for mods and basegame
 	if (fs_homepath->string[0] && Q_stricmp(fs_homepath->string,fs_basepath->string)) {
 		FS_CreatePath ( fs_homepath->string );
-		FS_AddGameDirectory ( fs_homepath->string, gameName );
+		FS_AddGameDirectory ( &fs_searchpaths, fs_homepath->string, gameName );
 	}
 
 	// check for additional base game so mods can be based upon other mods
 	if ( fs_basegame->string[0] && Q_stricmp( fs_basegame->string, gameName ) ) {
 		if (fs_gogpath->string[0]) {
-			FS_AddGameDirectory(fs_gogpath->string, fs_basegame->string);
+			FS_AddGameDirectory(&fs_searchpaths, fs_gogpath->string, fs_basegame->string);
 		}
 		if (fs_steampath->string[0]) {
-			FS_AddGameDirectory(fs_steampath->string, fs_basegame->string);
+			FS_AddGameDirectory(&fs_searchpaths, fs_steampath->string, fs_basegame->string);
 		}
 		if (fs_basepath->string[0]) {
-			FS_AddGameDirectory(fs_basepath->string, fs_basegame->string);
+			FS_AddGameDirectory(&fs_searchpaths, fs_basepath->string, fs_basegame->string);
 		}
 		if (fs_homepath->string[0] && Q_stricmp(fs_homepath->string,fs_basepath->string)) {
-			FS_AddGameDirectory(fs_homepath->string, fs_basegame->string);
+			FS_AddGameDirectory(&fs_searchpaths, fs_homepath->string, fs_basegame->string);
 		}
 	}
 
 	// check for additional game folder for mods
 	if ( fs_gamedirvar->string[0] && Q_stricmp( fs_gamedirvar->string, gameName ) ) {
 		if (fs_gogpath->string[0]) {
-			FS_AddGameDirectory(fs_gogpath->string, fs_gamedirvar->string);
+			FS_AddGameDirectory(&fs_searchpaths, fs_gogpath->string, fs_gamedirvar->string);
 		}
 		if (fs_steampath->string[0]) {
-			FS_AddGameDirectory(fs_steampath->string, fs_gamedirvar->string);
+			FS_AddGameDirectory(&fs_searchpaths, fs_steampath->string, fs_gamedirvar->string);
 		}
 		if (fs_basepath->string[0]) {
-			FS_AddGameDirectory(fs_basepath->string, fs_gamedirvar->string);
+			FS_AddGameDirectory(&fs_searchpaths, fs_basepath->string, fs_gamedirvar->string);
 		}
 		if (fs_homepath->string[0] && Q_stricmp(fs_homepath->string,fs_basepath->string)) {
-			FS_AddGameDirectory(fs_homepath->string, fs_gamedirvar->string);
+			FS_AddGameDirectory(&fs_searchpaths, fs_homepath->string, fs_gamedirvar->string);
 		}
+	}
+
+	// separate fs_datapath search path (/fs_datapath/fs_game/)
+	if (fs_datapath->string[0] && fs_gamedirvar->string[0]) {
+		FS_AddGameDirectory( &fs_datasearchpaths, fs_datapath->string, fs_gamedirvar->string );
 	}
 
 #ifndef STANDALONE
