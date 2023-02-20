@@ -157,6 +157,10 @@ void trap_TraceCapsule( trace_t *results, const vec3_t start, const vec3_t mins,
 	syscall( G_TRACECAPSULE, results, start, mins, maxs, end, passEntityNum, contentmask );
 }
 
+void trap_TraceGeometry( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int _ /* keep trap_Trace() interface */, int contentmask ) {
+	syscall( G_TRACEGEOMETRY, results, start, mins, maxs, end, contentmask );
+}
+
 int trap_PointContents( const vec3_t point, int passEntityNum ) {
 	return syscall( G_POINT_CONTENTS, point, passEntityNum );
 }

@@ -584,6 +584,20 @@ static void SV_ClipMoveToEntities( moveclip_t *clip ) {
 	}
 }
 
+/*
+==================
+SV_TraceGeometry
+
+Ignore all entities. Only clip to the bsp tree.
+Intended for performance.
+
+NOTE: doesn't accept NULL mins/maxs. Beware.
+==================
+*/
+void SV_TraceGeometry(trace_t *tr, const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, int contentmask) {
+	CM_BoxTrace(tr, start, end, mins, maxs, 0, contentmask, qfalse);
+	tr->entityNum = tr->fraction != 1.0 ? ENTITYNUM_WORLD : ENTITYNUM_NONE;
+}
 
 /*
 ==================

@@ -483,6 +483,9 @@ void SV_Trace( trace_t *results, const vec3_t start, vec3_t mins, vec3_t maxs, c
 // passEntityNum is explicitly excluded from clipping checks (normally ENTITYNUM_NONE)
 
 
+void SV_TraceGeometry( trace_t *results, const vec3_t start, vec3_t mins, vec3_t maxs, const vec3_t end, int contentmask );
+// performance-oriented trace function that ignores all entities.
+
 void SV_ClipToEntity( trace_t *trace, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int entityNum, int contentmask, int capsule );
 // clip to a specific entity
 

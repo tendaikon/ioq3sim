@@ -956,3 +956,5 @@ void *trap_Residual_Alloc(int size);
 void trap_Residual_Free(void *p);
 void *trap_Residual_GetIndex(int i);
 void trap_Residual_Clear(void);
+
+void trap_TraceGeometry(trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int _, int contentmask);
