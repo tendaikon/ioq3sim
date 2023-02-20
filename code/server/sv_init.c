@@ -688,11 +688,13 @@ void SV_Init (void)
 #endif
 	sv_banFile = Cvar_Get("sv_banFile", "serverbans.dat", CVAR_ARCHIVE);
 
-	// initialize bot cvars so they are listed and can be set before loading the botlib
-	SV_BotInitCvars();
+	if (Cvar_Get("bot_enable", "0", CVAR_LATCH)->integer) {
+		// initialize bot cvars so they are listed and can be set before loading the botlib
+		SV_BotInitCvars();
 
-	// init the botlib here because we need the pre-compiler in the UI
-	SV_BotInitBotLib();
+		// init the botlib here because we need the pre-compiler in the UI
+		SV_BotInitBotLib();
+	}
 	
 	// Load saved bans
 	Cbuf_AddText("rehashbans\n");
