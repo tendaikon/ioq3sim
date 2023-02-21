@@ -1037,8 +1037,8 @@ int SV_FrameMsec()
 	else
 		return 1;
 		*/
-	// don't wait. Run as fast as possible on dedicated servers.
-	return 1;
+	// don't wait at all on dedicated. Run as fast as possible.
+	return 0;
 }
 
 /*
