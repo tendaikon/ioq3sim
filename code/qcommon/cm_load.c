@@ -196,7 +196,7 @@ void CMod_LoadNodes( lump_t *l ) {
 
 	for (i=0 ; i<count ; i++, out++, in++)
 	{
-		out->plane = cm.planes + LittleLong( in->planeNum );
+		memcpy(&out->plane, cm.planes + LittleLong(in->planeNum), sizeof(cplane_t));
 		for (j=0 ; j<2 ; j++)
 		{
 			child = LittleLong (in->children[j]);
@@ -213,14 +213,14 @@ CM_BoundBrush
 =================
 */
 void CM_BoundBrush( cbrush_t *b ) {
-	b->bounds[0][0] = -b->sides[0].plane->dist;
-	b->bounds[1][0] = b->sides[1].plane->dist;
+	b->bounds[0][0] = -b->sides[0].plane.dist;
+	b->bounds[1][0] = b->sides[1].plane.dist;
 
-	b->bounds[0][1] = -b->sides[2].plane->dist;
-	b->bounds[1][1] = b->sides[3].plane->dist;
+	b->bounds[0][1] = -b->sides[2].plane.dist;
+	b->bounds[1][1] = b->sides[3].plane.dist;
 
-	b->bounds[0][2] = -b->sides[4].plane->dist;
-	b->bounds[1][2] = b->sides[5].plane->dist;
+	b->bounds[0][2] = -b->sides[4].plane.dist;
+	b->bounds[1][2] = b->sides[5].plane.dist;
 }
 
 
@@ -425,7 +425,7 @@ void CMod_LoadBrushSides (lump_t *l)
 
 	for ( i=0 ; i<count ; i++, in++, out++) {
 		num = LittleLong( in->planeNum );
-		out->plane = &cm.planes[num];
+		memcpy(&out->plane, cm.planes+num, sizeof(cplane_t));
 		out->shaderNum = LittleLong( in->shaderNum );
 		if ( out->shaderNum < 0 || out->shaderNum >= cm.numShaders ) {
 			Com_Error( ERR_DROP, "CMod_LoadBrushSides: bad shaderNum: %i", out->shaderNum );
@@ -770,7 +770,7 @@ void CM_InitBoxHull (void)
 
 		// brush sides
 		s = &cm.brushsides[cm.numBrushSides+i];
-		s->plane = 	cm.planes + (cm.numPlanes+i*2+side);
+		memcpy(&s->plane, cm.planes + (cm.numPlanes+i*2+side), sizeof(cplane_t));
 		s->surfaceFlags = 0;
 
 		// planes

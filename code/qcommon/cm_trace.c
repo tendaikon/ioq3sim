@@ -187,7 +187,7 @@ void CM_TestBoxInBrush( traceWork_t *tw, cbrush_t *brush ) {
 		// need to test the remainder
 		for ( i = 6 ; i < brush->numsides ; i++ ) {
 			side = brush->sides + i;
-			plane = side->plane;
+			plane = &side->plane;
 
 			// adjust the plane distance appropriately for radius
 			dist = plane->dist + tw->sphere.radius;
@@ -212,7 +212,7 @@ void CM_TestBoxInBrush( traceWork_t *tw, cbrush_t *brush ) {
 		// need to test the remainder
 		for ( i = 6 ; i < brush->numsides ; i++ ) {
 			side = brush->sides + i;
-			plane = side->plane;
+			plane = &side->plane;
 
 			// adjust the plane distance appropriately for mins/maxs
 			dist = plane->dist - DotProduct( tw->offsets[ plane->signbits ], plane->normal );
@@ -515,7 +515,7 @@ void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush ) {
 		//
 		for (i = 0; i < brush->numsides; i++) {
 			side = brush->sides + i;
-			plane = side->plane;
+			plane = &side->plane;
 
 			// adjust the plane distance appropriately for radius
 			dist = plane->dist + tw->sphere.radius;
@@ -582,7 +582,7 @@ void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush ) {
 		//
 		for (i = 0; i < brush->numsides; i++) {
 			side = brush->sides + i;
-			plane = side->plane;
+			plane = &side->plane;
 
 			// adjust the plane distance appropriately for mins/maxs
 			dist = plane->dist - DotProduct( tw->offsets[ plane->signbits ], plane->normal );
@@ -1062,7 +1062,7 @@ void CM_TraceThroughTree( traceWork_t *tw, int num, float p1f, float p2f, vec3_t
 		// and the offset for the size of the box
 		//
 		node = cm.nodes + num;
-		plane = node->plane;
+		plane = &node->plane;
 
 		// adjust the plane distance appropriately for mins/maxs
 		if ( plane->type < 3 ) {

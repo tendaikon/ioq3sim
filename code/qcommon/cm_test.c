@@ -36,7 +36,7 @@ int CM_PointLeafnum_r( const vec3_t p, int num ) {
 	while (num >= 0)
 	{
 		node = cm.nodes + num;
-		plane = node->plane;
+		plane = &node->plane;
 		
 		if (plane->type < 3)
 			d = p[plane->type] - plane->dist;
@@ -149,7 +149,7 @@ void CM_BoxLeafnums_r( leafList_t *ll, int nodenum ) {
 		}
 	
 		node = &cm.nodes[nodenum];
-		plane = node->plane;
+		plane = &node->plane;
 		s = BoxOnPlaneSide( ll->bounds[0], ll->bounds[1], plane );
 		if (s == 1) {
 			nodenum = node->children[0];
@@ -256,10 +256,10 @@ int CM_PointContents( const vec3_t p, clipHandle_t model ) {
 
 		// see if the point is in the brush
 		for ( i = 0 ; i < b->numsides ; i++ ) {
-			d = DotProduct( p, b->sides[i].plane->normal );
+			d = DotProduct( p, b->sides[i].plane.normal );
 // FIXME test for Cash
 //			if ( d >= b->sides[i].plane->dist ) {
-			if ( d > b->sides[i].plane->dist ) {
+			if ( d > b->sides[i].plane.dist ) {
 				break;
 			}
 		}

@@ -30,8 +30,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 
 typedef struct {
-	cplane_t	*plane;
 	int			children[2];		// negative numbers are leafs
+	cplane_t	plane;
 } cNode_t;
 
 typedef struct {
@@ -51,7 +51,7 @@ typedef struct cmodel_s {
 } cmodel_t;
 
 typedef struct {
-	cplane_t	*plane;
+	cplane_t	plane;
 	int			surfaceFlags;
 	int			shaderNum;
 } cbrushside_t;
