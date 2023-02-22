@@ -462,7 +462,9 @@ CM_TraceThroughPatch
 void CM_TraceThroughPatch( traceWork_t *tw, cPatch_t *patch ) {
 	float		oldFrac;
 
+#ifdef COM_SHOWTRACE
 	c_patch_traces++;
+#endif
 
 	oldFrac = tw->trace.fraction;
 
@@ -500,7 +502,9 @@ void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush ) {
 		return;
 	}
 
+#ifdef COM_SHOWTRACE
 	c_brush_traces++;
+#endif
 
 	getout = qfalse;
 	startout = qfalse;
@@ -1163,7 +1167,9 @@ void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, vec3_t mi
 
 	cm.checkcount++;		// for multi-check avoidance
 
+#ifdef COM_SHOWTRACE
 	c_traces++;				// for statistics, may be zeroed
+#endif
 
 	// fill in a default trace
 	Com_Memset( &tw, 0, sizeof(tw) );

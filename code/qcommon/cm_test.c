@@ -48,7 +48,9 @@ int CM_PointLeafnum_r( const vec3_t p, int num ) {
 			num = node->children[0];
 	}
 
+#ifdef COM_SHOWTRACE
 	c_pointcontents++;		// optimize counter
+#endif
 
 	return -1 - num;
 }

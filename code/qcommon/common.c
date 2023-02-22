@@ -71,7 +71,9 @@ cvar_t	*com_sv_running;
 cvar_t	*com_cl_running;
 cvar_t	*com_logfile;		// 1 = buffer log, 2 = flush after each print
 cvar_t	*com_pipefile;
+#ifdef COM_SHOWTRACE
 cvar_t	*com_showtrace;
+#endif
 cvar_t	*com_version;
 cvar_t	*com_blood;
 cvar_t	*com_buildScript;	// for automated data building scripts
@@ -2829,7 +2831,9 @@ void Com_Init( char *commandLine ) {
 
 	com_timescale = Cvar_Get ("timescale", "1", CVAR_CHEAT | CVAR_SYSTEMINFO );
 	com_fixedtime = Cvar_Get ("fixedtime", "0", CVAR_CHEAT);
+#ifdef COM_SHOWTRACE
 	com_showtrace = Cvar_Get ("com_showtrace", "0", CVAR_CHEAT);
+#endif
 	com_speeds = Cvar_Get ("com_speeds", "0", 0);
 	com_timedemo = Cvar_Get ("timedemo", "0", CVAR_CHEAT);
 	com_cameraMode = Cvar_Get ("com_cameraMode", "0", CVAR_CHEAT);
@@ -3324,6 +3328,7 @@ void Com_Frame( void ) {
 	//
 	// trace optimization tracking
 	//
+#ifdef COM_SHOWTRACE
 	if ( com_showtrace->integer ) {
 	
 		extern	int c_traces, c_brush_traces, c_patch_traces;
@@ -3336,6 +3341,7 @@ void Com_Frame( void ) {
 		c_patch_traces = 0;
 		c_pointcontents = 0;
 	}
+#endif
 
 	Com_ReadFromPipe( );
 

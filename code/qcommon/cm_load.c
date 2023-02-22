@@ -52,8 +52,10 @@ void SetPlaneSignbits (cplane_t *out) {
 
 
 clipMap_t	cm;
+#ifdef COM_SHOWTRACE
 int			c_pointcontents;
 int			c_traces, c_brush_traces, c_patch_traces;
+#endif
 
 
 byte		*cmod_base;
